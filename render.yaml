@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: traffic-simulation-site
+    env: static
+    buildCommand: echo "No build required"
+    staticPublishPath: .
+    pullRequestPreviewsEnabled: false
+    domains:
+      - traffic-simulation.onrender.com
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: SAMEORIGIN
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index2.html

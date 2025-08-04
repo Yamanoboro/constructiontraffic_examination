@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown Preview</title>
+    
+<script>
+MathJax = {
+    tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']],
+        processEscapes: true,
+        processEnvironments: true
+    },
+    options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+    }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    
+<style>
+/* カスタムプロパティ（CSS変数）の定義 */
+:root {
+    --primary-color: #4299e1;
+    --primary-dark: #2b6cb0;
+    --text-color: #2d3748;
+    --bg-color: #f8f9fa;
+    --content-bg: #ffffff;
+    --code-bg: #2d3748;
+    --code-color: #e2e8f0;
+    --border-color: #e2e8f0;
+    --heading-color: #1a365d;
+    --link-color: #4299e1;
+    --link-hover: #2b6cb0;
+    --font-sans: "Helvetica Neue", "Segoe UI", "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+    --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+}
+
+/* マウス軌跡機能のスタイル */
+.trail-dot {
+  position: fixed;
+  border-radius: 50%;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  z-index: 1000;
+}
+
+/* マウスポインタを白丸に */
+body {
+  cursor: none;
+}
+
+/* 現在のマウス位置を示す白丸 */
+.cursor-dot {
+  position: fixed;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  z-index: 1001;
+}
+
+/* コントロールボタンではマウスポインタを表示 */
+.controls, a, button, input {
+  cursor: auto;
+}
+
+.controls {
+  padding: 10px;
+  background-color: rgba(255, 255, 255, 0.9);
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  position: sticky;
+  top: 10px;
+  z-index: 1001;
+}
+
+.control-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+button.control-btn {
+  padding: 6px 12px;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+button.control-btn:hover {
+  background-color: var(--primary-dark);
+}
+
+.color {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid transparent;
+}
+
+.color.active {
+  border-color: #333;
+}
+
+input[type="range"] {
+  width: 80px;
+}
+
+/* ダークモード対応 */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --text-color: #e2e8f0;
+        --bg-color: #1a202c;
+        --content-bg: #2d3748;
+        --code-bg: #4a5568;
+        --code-color: #e2e8f0;
+        --border-color: #4a5568;
+        --heading-color: #90cdf4;
+        --link-color: #63b3ed;
+        --link-hover: #90cdf4;
+    }
+}
+
+/* 基本スタイル */
+body {
+    font-family: var(--font-sans);
+    line-height: 1.8;
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 2rem;
+    color: var(--text-color);
+    background-color: var(--bg-color);
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* スムーズスクロール */
+html {
+    scroll-behavior: smooth;
+}
+
+/* コンテンツ領域 */
+.content {
+    background: var(--content-bg);
+    padding: 3rem 4rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+}
+
+.content:hover {
+    box-shadow: 0 6px 24px rgba(0,0,0,0.15);
+}
+
+/* 見出し */
+h1, h2, h3, h4, h5, h6 {
+    font-feature-settings: "palt";
+    letter-spacing: 0.04em;
+    transition: color 0.3s ease;
+}
+
+h1 {
+    font-size: 2.5em;
+    color: var(--heading-color);
+    border-bottom: 3px solid var(--primary-color);
+    padding-bottom: 0.5em;
+    margin-bottom: 1.5em;
+    text-align: center;
+    position: relative;
+}
+
+h1::after {
+    content: "";
+    position: absolute;
+    bottom: -3px;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: linear-gradient(90deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.3s ease;
+}
+
+.content:hover h1::after {
+    transform: scaleX(1);
+}
+
+h2 {
+    font-size: 2em;
+    color: var(--heading-color);
+    border-left: 5px solid var(--primary-color);
+    padding: 0.5em 0 0.5em 1em;
+    margin: 2.5em 0 1.5em;
+    background: linear-gradient(90deg, rgba(66,153,225,0.1) 0%, rgba(66,153,225,0) 100%);
+    border-radius: 4px;
+}
+
+h3 {
+    font-size: 1.7em;
+    color: var(--heading-color);
+    margin: 2em 0 1em;
+    padding-bottom: 0.5em;
+    border-bottom: 2px solid var(--border-color);
+    position: relative;
+}
+
+h3::after {
+    content: "";
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 30%;
+    height: 2px;
+    background: var(--primary-color);
+}
+
+/* テーブル */
+table {
+    width: 100%;
+    margin: 2.5em 0;
+    border-collapse: separate;
+    border-spacing: 0;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    transition: all 0.3s ease;
+}
+
+table:hover {
+    box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+}
+
+th {
+    background-color: var(--primary-color);
+    color: white;
+    font-weight: 600;
+    padding: 1.2em;
+    text-align: center;
+    position: relative;
+}
+
+th::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: rgba(255,255,255,0.2);
+}
+
+td {
+    padding: 1.2em;
+    border-bottom: 1px solid var(--border-color);
+    transition: background-color 0.2s ease;
+}
+
+tr:last-child td {
+    border-bottom: none;
+}
+
+/* 偶数行に背景色を適用 */
+tr:nth-child(even) {
+    background-color: rgba(66,153,225,0.05);
+}
+
+/* 奇数行に背景色を適用（オプション） */
+tr:nth-child(odd) {
+    background-color: rgba(255,255,255,0.8);
+}
+
+tr:hover td {
+    background-color: rgba(66,153,225,0.15);
+}
+
+/* 画像 */
+img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 2.5em auto;
+    border-radius: 12px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+    transition: all 0.3s ease;
+    cursor: zoom-in;
+}
+
+img:hover {
+    transform: scale(1.02);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+}
+
+/* テキスト */
+p {
+    margin-bottom: 1.8em;
+    line-height: 2;
+    text-align: justify;
+    hyphens: auto;
+}
+
+/* リスト */
+ul, ol {
+    padding-left: 2.5em;
+    margin: 1.5em 0;
+}
+
+li {
+    margin: 0.7em 0;
+    line-height: 1.8;
+    position: relative;
+}
+
+ul li::before {
+    content: "•";
+    color: var(--primary-color);
+    font-weight: bold;
+    position: absolute;
+    left: -1.5em;
+}
+
+/* コードブロック */
+pre {
+    background-color: var(--code-bg);
+    color: var(--code-color);
+    padding: 1.8em;
+    border-radius: 12px;
+    overflow-x: auto;
+    margin: 2em 0;
+    font-size: 0.95em;
+    position: relative;
+}
+
+pre::before {
+    content: "";
+    position: absolute;
+    top: 1em;
+    left: 1em;
+    width: 12px;
+    height: 12px;
+    background: #ff5f56;
+    border-radius: 50%;
+    box-shadow: 20px 0 0 #ffbd2e, 40px 0 0 #27c93f;
+}
+
+code {
+    font-family: var(--font-mono);
+    background-color: rgba(66,153,225,0.1);
+    color: var(--primary-color);
+    padding: 0.2em 0.4em;
+    border-radius: 4px;
+    font-size: 0.95em;
+    transition: background-color 0.2s ease;
+}
+
+code:hover {
+    background-color: rgba(66,153,225,0.15);
+}
+
+pre code {
+    background-color: transparent;
+    color: inherit;
+    padding: 0;
+}
+
+/* 引用 */
+blockquote {
+    margin: 2em 0;
+    padding: 1.5em 2em;
+    border-left: 4px solid var(--primary-color);
+    background-color: rgba(66,153,225,0.1);
+    color: var(--text-color);
+    border-radius: 0 12px 12px 0;
+    position: relative;
+}
+
+blockquote::before {
+    content: "C";  /* Unicode文字コードを使用 */
+    position: absolute;
+    top: 0;
+    left: 0.5em;   /* 単位を正しく指定 */
+    font-size: 3em;
+    color: var(--primary-color);
+    opacity: 0.2;
+}
+
+/* リンク */
+a {
+    color: var(--link-color);
+    text-decoration: none;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+a::after {
+    content: "";
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 100%;
+    height: 1px;
+    background: var(--link-color);
+    transform: scaleX(0);
+    transform-origin: right;
+    transition: transform 0.3s ease;
+}
+
+a:hover {
+    color: var(--link-hover);
+}
+
+a:hover::after {
+    transform: scaleX(1);
+    transform-origin: left;
+}
+
+/* 数式 */
+.math {
+    overflow-x: auto;
+    margin: 1.5em 0;
+    padding: 1.5em;
+    background-color: rgba(66,153,225,0.05);
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+}
+
+/* インライン数式 */
+.math-inline {
+    padding: 0.2em 0.4em;
+    background-color: rgba(66,153,225,0.05);
+    border-radius: 4px;
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+    body {
+        padding: 1rem;
+    }
+    
+    .content {
+        padding: 2rem;
+    }
+    
+    h1 {
+        font-size: 2em;
+    }
+    
+    h2 {
+        font-size: 1.7em;
+    }
+    
+    h3 {
+        font-size: 1.4em;
+    }
+    
+    table {
+        display: block;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+}
+
+/* 印刷用スタイル */
+@media print {
+    body {
+        max-width: none;
+        padding: 0;
+        background: white;
+        color: black;
+    }
+    
+    .content {
+        box-shadow: none;
+        padding: 0;
+    }
+    
+    a {
+        color: black;
+        text-decoration: underline;
+    }
+    
+    img {
+        max-width: 100% !important;
+        page-break-inside: avoid;
+    }
+    
+    pre, blockquote {
+        page-break-inside: avoid;
+    }
+    
+    h1, h2, h3 {
+        page-break-after: avoid;
+    }
+    
+    table {
+        page-break-inside: avoid;
+    }
+}
+
+/* アクセシビリティ改善 */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation: none !important;
+        transition: none !important;
+    }
+}
+
+/* フォーカス表示の改善 */
+:focus {
+    outline: 3px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+/* スクロールバーのカスタマイズ */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-color);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--primary-color);
+    border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-dark);
+}
+
+/* 戻るボタンのスタイル */
+.back-link {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    z-index: 1000;
+    margin: 0;
+}
+
+.back-btn {
+    display: inline-flex;
+    align-items: center;
+    background-color: var(--primary-color);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 6px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.back-btn:hover {
+    background-color: var(--primary-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.back-btn::after {
+    display: none;
+}
+
+.back-icon {
+    font-size: 1.2em;
+    margin-right: 10px;
+}
+
+.back-text {
+    font-weight: 500;
+}
+
+/* 表タイトルのスタイル */
+.table-title {
+    text-align: center;
+    font-weight: bold;
+    margin: 2em 0 1em;
+}
+
+/* 表のセル配置クラス */
+.center {
+    text-align: center;
+}
+
+.left {
+    text-align: left;
+}
+</style>
+
+</head>
+<body>
+<div class="cursor-dot"></div>
+<div class="content">
+<div class="controls">
+  <div class="control-group">
+    <button id="clearBtn" class="control-btn">軌跡を消去</button>
+    <button id="toggleBtn" class="control-btn">一時停止</button>
+  </div>
+  <div class="control-group">
+    <label for="sizeRange">サイズ:</label>
+    <input type="range" id="sizeRange" min="2" max="20" value="10">
+    <span id="sizeValue">10</span>px
+  </div>
+  <div class="control-group">
+    <label for="fadeRange">消滅速度:</label>
+    <input type="range" id="fadeRange" min="1" max="10" value="3">
+    <span id="fadeValue">3</span>秒
+  </div>
+  <div class="control-group">
+    <span>色:</span>
+    <div class="color active" style="background-color: #ff5252;" data-color="#ff5252"></div>
+    <div class="color" style="background-color: #4299e1;" data-color="#4299e1"></div>
+    <div class="color" style="background-color: #43a047;" data-color="#43a047"></div>
+    <div class="color" style="background-color: #ffb300;" data-color="#ffb300"></div>
+  </div>
+</div>
+
+<div class="back-link">
+    <a href="index2.html" class="back-btn">
+        <span class="back-icon">←</span>
+        <span class="back-text">メインページに戻る</span>
+    </a>
+</div>
+<h2>病院の改修工事における工事車両導線被討デモ</h2>
+<h1>目次</h1>
+<p>1 目的<br>
+2 前提条件<br>
+3 検討ケースについて<br>
+4 検討結果アウトプット例<br>
+5 その他の主な検討可能事項</p>
+<h1>目的</h1>
+<p>病院の改修工事を計画するにあたり、病院関係車両（救急車両、物流車両、患者車両など）の安全性を確保しつつ、工事車両の導線を計画する必要があります。その計画をする上での現況の課題把握及び、仮説案の評価と絞り込みを行うことを目的とします。</p>
+<h2>検討内容</h2>
+<ol>
+<li>現況交通の課題把握。</li>
+<li>工事車両導線計画仮説案の評価と絞込。</li>
+</ol>
+<h2>評価方法</h2>
+<ol>
+<li>ア二メーション</li>
+<li>旅行時間、平均速度、渋滞長（本検討では旅行時間のみ算出）</li>
+</ol>
+<p>シミュレーション検討範囲は下図の赤色箇所とし、下表の需要を用いて検討しております。</p>
+<p>検討範囲図<br>
+<img alt="img-0_0.jpeg" src="images/page_4/img-0_0.jpeg"></p>
+<p class="table-title">表 車両属性別の需要</p>
+<table>
+<thead>
+<tr>
+<th>車両属性</th>
+<th></th>
+<th>台(人)時</th>
+<th>備考</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="center">一般車両</td>
+<td class="center"></td>
+<td class="center">649</td>
+<td class="left">国道477号線の交通センサスデー夕を使用。</td>
+</tr>
+<tr>
+<td class="center">病院関係者車両・歩行者</td>
+<td class="center">救急車両</td>
+<td class="center">1</td>
+<td class="left">H20年の救急搬送患者数（6,134名 /年) $\div 365$ （日） $\div 24$ （時間） $=$ 0.7</td>
+</tr>
+<tr>
+<td class="center"></td>
+<td class="center">物流車両</td>
+<td class="center">$\begin{gathered} 20 \text { 台 } \div 2 \ \text { (施設規 } \ \text { 模 })=10 \end{gathered}$</td>
+<td class="left">東京大学付属病院（四日市病院上 り患者数などが約2倍）での物流車両のピーク時の搬入件数20台/時を使用。</td>
+</tr>
+<tr>
+<td class="center"></td>
+<td class="center">外来患者 <br> (自家用車)</td>
+<td class="center">$\begin{aligned} &amp; 300 \text { 名 } \times 2 \ &amp; (\text { 出入 }) \ &amp; =600 \end{aligned}$</td>
+<td class="left">1800名（H19年外来患者数約） $\div$ 6 時間（営業時間） $=300$ 名を使用。処病院に入ってくるバスが 1時間に 1 本程度なので、外来患者 の自家用車利用率を $100 \%$ と仮定。</td>
+</tr>
+<tr>
+<td class="center"></td>
+<td class="center">患者・付添者</td>
+<td class="center">1000</td>
+<td class="left">自家用車で来る患者にはほぼ付き添いが 1 人いると仮定（南駐車場 のみ加味)</td>
+</tr>
+<tr>
+<td class="center">工事車両</td>
+<td class="center"></td>
+<td class="center">$\begin{gathered} 40 \text { 台 } \times 2 \ (\text { 出入 })= \ 80 \end{gathered}$</td>
+<td class="left">仮設定</td>
+</tr>
+</tbody>
+</table>
+<p>宗交通センサスデータ及ネット情報を収集して設定</p>
+<h1>井03 検討ケース</h1>
+<p>下表の 3 つを検討ケースとしました。工事車両の導線に関しては下図のように設定を行っております。</p>
+<h2>検討ケース</h2>
+<p class="table-title">表 検討ケース一覧</p>
+<table>
+<thead>
+<tr>
+<th>ケース名</th>
+<th>工事車両</th>
+<th>交通車両通行禁止区間</th>
+<th>備考</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="center">ケース0</td>
+<td class="center">なし</td>
+<td class="center">-</td>
+<td class="left">現況</td>
+</tr>
+<tr>
+<td class="center">ケース 1</td>
+<td class="center">あり</td>
+<td class="center">なし</td>
+<td class="left">当初案（ユーデック計画）</td>
+</tr>
+<tr>
+<td class="center">ケース 2</td>
+<td class="center">あり</td>
+<td class="center">あり</td>
+<td class="left">改善案（御社計画）</td>
+</tr>
+</tbody>
+</table>
+<h2>工事車両導線図</h2>
+<p><img alt="img-1_0.jpeg" src="images/page_5/img-1_0.jpeg"></p>
+<h1>井04-1 検討結果 現況交通の課題把握（例）</h1>
+<p><img alt="img-2_0.jpeg" src="images/page_6/img-2_0.jpeg"></p>
+<p>病院周辺は渋滞などがなく円滑に車両が流動している。</p>
+<p class="table-title">表 車両別旅行時間</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>旅行時間（秒）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="left">外来患者車両（往復路）</td>
+<td class="center">65</td>
+</tr>
+<tr>
+<td class="left">救急車（往路のみ）</td>
+<td class="center">30</td>
+</tr>
+<tr>
+<td class="left">物流車両（往復路）</td>
+<td class="center">70</td>
+</tr>
+<tr>
+<td class="left">工事車両（往復路）</td>
+<td class="center">-</td>
+</tr>
+</tbody>
+</table>
+<p>巣往復別、00別に細かく集計することも可能です。</p>
+<h2>ア二メーションによる交通状況の把握（病院周辺の課題箇所）</h2>
+<p><img alt="img-3_1.jpeg" src="images/page_6/img-3_1.jpeg"></p>
+<p>南側駐車場と病院間の交差点においては、外来患者車両の出入り及び歩行者の横断が多いため、注意が必要であるといえる。</p>
+<h1>井04-2 検討結果 工事車両導線計画仮説案の評価と絞込（例）</h1>
+<p><img alt="img-4_0.jpeg" src="images/page_7/img-4_0.jpeg"></p>
+<p>病院周辺は渋滞などがなく円滑に車両が流動している。</p>
+<h2>車両別旅行時間</h2>
+<p class="table-title">表 工事車両導入後の車両別旅行時間（ケース1）</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>平均旅行時間（秒）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="left">外来患者車両（往復路）</td>
+<td class="center">75</td>
+</tr>
+<tr>
+<td class="left">救急車（往路のみ）</td>
+<td class="center">30</td>
+</tr>
+<tr>
+<td class="left">物流車両（往復）</td>
+<td class="center">70</td>
+</tr>
+<tr>
+<td class="left">工事車両（往路）</td>
+<td class="center">35</td>
+</tr>
+<tr>
+<td class="left">工事車両（複路）</td>
+<td class="center">150</td>
+</tr>
+</tbody>
+</table>
+<p>検討範囲内における、外来患者の旅行時間は平均75秒となり、現況より長くなっている。</p>
+<h2>アニメーションによる交通状況の把握（病院周辺の課題箇所）</h2>
+<p><img alt="img-5_1.jpeg" src="images/page_7/img-5_1.jpeg"></p>
+<p>南側駐車場と病院間の交差点において、工事車が両加わることによって、歩行者及び外来患者車両の交錯が多くなることが推測される。</p>
+<h1>井04-3 検討結果 工事車両導線計画仮説案の評価と絞込（例）</h1>
+<p><img alt="img-6_0.jpeg" src="images/page_8/img-6_0.jpeg"></p>
+<p>病院周辺は渋滞などがなく円滑に車両が流動している。検討範囲ないにおける、外来患者の旅行時間は平均 x 秒である。</p>
+<h2>車両別旅行時間</h2>
+<p class="table-title">表 工事車両導入後の車両別旅行時間（ケース2）</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>平均旅行時間（秒）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="left">外来患者車両（往復路）</td>
+<td class="center">65</td>
+</tr>
+<tr>
+<td class="left">救急車（往路）</td>
+<td class="center">30</td>
+</tr>
+<tr>
+<td class="left">物流車両（往復）</td>
+<td class="center">70</td>
+</tr>
+<tr>
+<td class="left">工事車両（往路）</td>
+<td class="center">35</td>
+</tr>
+<tr>
+<td class="left">工事車両（復路）</td>
+<td class="center">90</td>
+</tr>
+</tbody>
+</table>
+<p><img alt="img-7_1.jpeg" src="images/page_8/img-7_1.jpeg"></p>
+<p>南側駐車場と病院間の交差点において、工事車両と歩行者及び外来患者車両の交錯多くなっている。</p>
+<h1>井04-4 検討結果 工事車両導線計画仮説案の評価と絞込（例）</h1>
+<p>検討結果まとめ<br>
+ケース 1 、ケース 2 の両ケースともに、周辺交通においては、渋滞が発生する事がなく円滑に車両が流動している。<br>
+しかし、ケース 1 においては、病院と南駐車場間において、病院関係車両・歩行者との交錯が多く発生する事が予測される。<br>
+また、下表の旅行時間の比較結果に示すとおり、ケース 2 よりケース 1 の撤出時間が多くかかる結果となった。そのため ケース 1 は、旅行時間が多くかかる分、病院関係者車両・歩行者との接触可能性が増えることが推測される。</p>
+<p>よって、ケース 2 の工事車両の導線計画が適切であると言える。</p>
+<p class="table-title">表 各ケースの車両別旅行時間比較</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>ケース 0</th>
+<th>ケース 1</th>
+<th>ケース 2</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="left">外来患者車両（往復路）</td>
+<td class="center">65</td>
+<td class="center">75</td>
+<td class="center">65</td>
+</tr>
+<tr>
+<td class="left">救急車（往路のみ）</td>
+<td class="center">30</td>
+<td class="center">30</td>
+<td class="center">30</td>
+</tr>
+<tr>
+<td class="left">物流車両（往復）</td>
+<td class="center">70</td>
+<td class="center">70</td>
+<td class="center">70</td>
+</tr>
+<tr>
+<td class="left">工事車両（往路）</td>
+<td class="center">-</td>
+<td class="center">35</td>
+<td class="center">35</td>
+</tr>
+<tr>
+<td class="left">工事車両（復路）</td>
+<td class="center">-</td>
+<td class="center">150</td>
+<td class="center">90</td>
+</tr>
+<tr>
+<td class="left">総合評価</td>
+<td class="center">-</td>
+<td class="center">5</td>
+<td class="center">(5)</td>
+</tr>
+</tbody>
+</table>
+<h1>井05 その他の主な検討可能事項</h1>
+<ol>
+<li>最大許容可能な工事車両通行台数<br>
+<img alt="img-8_0.jpeg" src="images/page_10/img-8_0.jpeg"></li>
+<li>C02、NOxなどの環境指標の算出<br>
+<img alt="img-9_1.jpeg" src="images/page_10/img-9_1.jpeg"></li>
+<li>道路の視認性の検討<br>
+<img alt="img-10_2.jpeg" src="images/page_10/img-10_2.jpeg"></li>
+</ol>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const content = document.querySelector('.content');
+    const clearBtn = document.getElementById('clearBtn');
+    const toggleBtn = document.getElementById('toggleBtn');
+    const sizeRange = document.getElementById('sizeRange');
+    const sizeValue = document.getElementById('sizeValue');
+    const fadeRange = document.getElementById('fadeRange');
+    const fadeValue = document.getElementById('fadeValue');
+    const colorPicker = document.querySelectorAll('.color');
+    const cursorDot = document.querySelector('.cursor-dot');
+    
+    let isDrawing = true;
+    let trailColor = '#ff5252';
+    let dotSize = 10;
+    let fadeDuration = 3;
+    
+    // カスタムカーソルの移動
+    document.addEventListener('mousemove', function(e) {
+      cursorDot.style.left = `${e.clientX}px`;
+      cursorDot.style.top = `${e.clientY}px`;
+    });
+    
+    // 色の選択
+    colorPicker.forEach(color => {
+      color.addEventListener('click', function() {
+        colorPicker.forEach(c => c.classList.remove('active'));
+        this.classList.add('active');
+        trailColor = this.getAttribute('data-color');
+      });
+    });
+    
+    // サイズの調整
+    sizeRange.addEventListener('input', function() {
+      dotSize = this.value;
+      sizeValue.textContent = dotSize;
+    });
+    
+    // 消える速度の調整
+    fadeRange.addEventListener('input', function() {
+      fadeDuration = this.value;
+      fadeValue.textContent = fadeDuration;
+    });
+    
+    // 軌跡を消去
+    clearBtn.addEventListener('click', function() {
+      const dots = document.querySelectorAll('.trail-dot');
+      dots.forEach(dot => dot.remove());
+    });
+    
+    // 軌跡の表示/非表示
+    toggleBtn.addEventListener('click', function() {
+      isDrawing = !isDrawing;
+      toggleBtn.textContent = isDrawing ? '一時停止' : '再開';
+    });
+    
+    // マウスの動きを検出して軌跡を作成
+    content.addEventListener('mousemove', function(e) {
+      if (!isDrawing) return;
+      
+      // マウスの実際の位置をそのまま使用
+      const x = e.clientX;
+      const y = e.clientY;
+      
+      // 軌跡のドットを作成
+      const dot = document.createElement('div');
+      dot.classList.add('trail-dot');
+      dot.style.width = `${dotSize}px`;
+      dot.style.height = `${dotSize}px`;
+      dot.style.backgroundColor = trailColor;
+      dot.style.left = `${x}px`;
+      dot.style.top = `${y}px`;
+      dot.style.opacity = '0.7';
+      
+      content.appendChild(dot);
+      
+      // アニメーションで徐々に消える
+      setTimeout(() => {
+        dot.style.transition = `opacity ${fadeDuration}s ease-out`;
+        dot.style.opacity = '0';
+        
+        // アニメーション終了後に要素を削除
+        setTimeout(() => {
+          dot.remove();
+        }, fadeDuration * 1000);
+      }, 10);
+    });
+  });
+</script>
+</div>
+</body>
+</html>

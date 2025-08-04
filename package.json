@@ -1,0 +1,18 @@
+{
+  "name": "traffic-simulation-site",
+  "version": "1.0.0",
+  "description": "工事現場の交通シミュレーション - パスワード保護付きランディングページ",
+  "main": "index2.html",
+  "scripts": {
+    "start": "python -m http.server 3000",
+    "build": "echo 'No build required'"
+  },
+  "keywords": [
+    "traffic-simulation",
+    "construction",
+    "SUMO",
+    "simulation"
+  ],
+  "author": "",
+  "license": "MIT"
+}

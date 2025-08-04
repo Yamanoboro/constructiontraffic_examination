@@ -1,0 +1,1205 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>工事現場の交通シミュレーション マニュアル：SUMO & Netedit ガイド</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+    /* マウス軌跡機能のスタイル */
+    .trail-dot {
+      position: fixed;
+      border-radius: 50%;
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      z-index: 1000;
+    }
+    
+    /* マウスポインタを白丸に */
+    body {
+      cursor: none;
+    }
+    
+    /* 現在のマウス位置を示す白丸 */
+    .cursor-dot {
+      position: fixed;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background-color: rgba(255, 255, 255, 0.6);
+      border: 1px solid rgba(0, 0, 0, 0.2);
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      z-index: 1001;
+    }
+    
+    /* コントロールボタンではマウスポインタを表示 */
+    .controls, a, button, input {
+      cursor: auto;
+    }
+    
+    .controls {
+      padding: 10px;
+      background-color: rgba(255, 255, 255, 0.9);
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      margin-bottom: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      position: sticky;
+      top: 10px;
+      z-index: 1001;
+      max-width: 800px;
+      margin: 0 auto 20px;
+    }
+    
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    button.control-btn {
+      padding: 6px 12px;
+      background-color: #4299e1;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    
+    button.control-btn:hover {
+      background-color: #2b6cb0;
+    }
+    
+    .color {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid transparent;
+    }
+    
+    .color.active {
+      border-color: #333;
+    }
+    
+    input[type="range"] {
+      width: 80px;
+    }
+    
+    /* ヒント一覧のスタイル */
+    .tips-overview {
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 30px;
+    }
+    
+    .tips-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 10px;
+    }
+    
+    .tips-list li {
+        margin: 0;
+    }
+    
+    .tips-list a {
+        display: block;
+        padding: 10px 15px;
+        background-color: #fff;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        color: #495057;
+        text-decoration: none;
+        transition: all 0.2s ease;
+    }
+    
+    .tips-list a:hover {
+        background-color: #e9ecef;
+        border-color: #ced4da;
+        transform: translateY(-2px);
+    }
+    
+    /* 検索とタグフィルターのスタイル */
+    .tips-search {
+        margin-bottom: 20px;
+    }
+    
+    .search-input {
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 10px;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        font-size: 16px;
+    }
+    
+    .tag-filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 15px;
+    }
+    
+    .tag-btn {
+        padding: 6px 12px;
+        border: 1px solid #dee2e6;
+        border-radius: 20px;
+        background-color: #fff;
+        color: #495057;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .tag-btn:hover {
+        background-color: #e9ecef;
+    }
+    
+    .tag-btn.active {
+        background-color: #4299e1;
+        color: white;
+        border-color: #4299e1;
+    }
+    
+    .tips-list li {
+        display: none;
+    }
+    
+    .tips-list li.visible {
+        display: block;
+    }
+
+    .lefthand-setting-content {
+      display: flex;
+      gap: 24px;
+      align-items: flex-start;
+    }
+    .lefthand-instruction {
+      flex: 2;
+    }
+    .lefthand-image {
+      flex: 1;
+      min-width: 220px;
+      max-width: 320px;
+    }
+    .lefthand-image img {
+      width: 100%;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+    .img-caption {
+      font-size: 13px;
+      color: #666;
+      margin-top: 4px;
+      text-align: center;
+    }
+    </style>
+</head>
+<body>
+    <div class="cursor-dot"></div>
+    <div class="controls">
+      <div class="control-group">
+        <button id="clearBtn" class="control-btn">軌跡を消去</button>
+        <button id="toggleBtn" class="control-btn">一時停止</button>
+      </div>
+      <div class="control-group">
+        <label for="sizeRange">サイズ:</label>
+        <input type="range" id="sizeRange" min="2" max="20" value="10">
+        <span id="sizeValue">10</span>px
+      </div>
+      <div class="control-group">
+        <label for="fadeRange">消滅速度:</label>
+        <input type="range" id="fadeRange" min="1" max="10" value="3">
+        <span id="fadeValue">3</span>秒
+      </div>
+      <div class="control-group">
+        <span>色:</span>
+        <div class="color active" style="background-color: #ff5252;" data-color="#ff5252"></div>
+        <div class="color" style="background-color: #4299e1;" data-color="#4299e1"></div>
+        <div class="color" style="background-color: #43a047;" data-color="#43a047"></div>
+        <div class="color" style="background-color: #ffb300;" data-color="#ffb300"></div>
+      </div>
+    </div>
+
+    <header>
+        <div class="container">
+            <h1>工事現場の交通シミュレーション マニュアル</h1>
+            <p class="subtitle">オープンソース技術でコスト削減と効率化を実現 - 非専門家でも使える実践的アプローチ</p>
+            <p class="version">対応バージョン: SUMO 1.23.1 / Netedit 1.23.1</p>
+        </div>
+    </header>
+
+    <main>
+        <section class="container">
+            <div class="toc-container">
+                <h2>目次</h2>
+                <ul class="toc-list">
+                    <li><a href="#intro">SUMOとは</a></li>
+                    <li><a href="#benefits">SUMOのメリット</a></li>
+                    <li><a href="#outputs">SUMOのアウトプット</a></li>
+                    <li><a href="#construction-impact">工事現場の交通流インパクト分析</a></li>
+                    <li><a href="#simulation-points">シミュレーションのポイント</a></li>
+                    <li><a href="#object-detection">オブジェクトディテクション技術による交通流の調査</a></li>
+                    <li><a href="#netedit">Neteditとは</a></li>
+                    <li><a href="#workflow">基本ワークフロー</a></li>
+                    <li><a href="#netedit-guide">Netedit 使用ガイド</a></li>
+                    <li><a href="#keyboard-shortcuts">キーボードショートカット</a></li>
+                    <li><a href="#tips">便利なヒント</a></li>
+                    <li><a href="#resources">参考リソース</a></li>
+                </ul>
+            </div>
+        </section>
+
+        <section id="intro" class="container">
+            <div class="section-header">
+                <h2>SUMOとは</h2>
+            </div>
+            <div class="content-box">
+                <div class="text-content">
+                    <p>SUMOは「Simulation of Urban MObility」の略で、オープンソースの交通シミュレーションパッケージです。大規模な道路ネットワークと様々な交通手段を扱うことができます。</p>
+                    <p>主にドイツ航空宇宙センターの交通システム研究所の研究者によって開発されています。</p>
+                    <p>商用の交通シミュレーションソフトウェアとしては、<a href="https://www.aimsun.com/" target="_blank">Aimsun</a>（旧TSS社）が業界で広く使用されています。Aimsunはマイクロ・メソ・マクロレベルの統合シミュレーションを提供する高性能な有償ソリューションですが、SUMOはオープンソースの選択肢として優れた機能を無償で提供しています。</p>
+                </div>
+                <div class="image-content">
+                    <a href="https://www.eclipse.org/sumo/" target="_blank" class="logo-link">
+                        <img src="images/sumo-logo.png" alt="SUMO Logo" class="logo-img">
+                    </a>
+                </div>
+            </div>
+            <div class="advanced-integration">
+                <h3>SUMOからの発展：3D環境への展開の可能性と提案事例</h3>
+                <p>SUMOの2Dシミュレーション結果を3D環境に発展させることで実現できる、以下のような活用可能性と提案事例を紹介します：</p>
+                <div class="integration-cards">
+                    <div class="integration-card">
+                        <div class="integration-icon">🤖</div>
+                        <h4>Webots連携による安全評価</h4>
+                        <p>SUMOと<a href="https://cyberbotics.com/" target="_blank">Webots</a>を連携させることで、工事現場における重要な安全評価が可能になります：</p>
+                        <ul class="integration-benefits">
+                            <li><strong>ドライバー視点の検証</strong>：工事区間での視認性や死角の評価、標識の適切な配置の検証</li>
+                            <li><strong>誘導員の有効性評価</strong>：交通誘導員の位置や誘導方法の効果を、ドライバー視点から検証</li>
+                            <li><strong>施工機械の動線確認</strong>：クレーンなどの大型機械と周辺交通の安全な共存の検証</li>
+                        </ul>
+                    </div>
+                    <div class="integration-card">
+                        <div class="integration-icon">🎮</div>
+                        <h4>Unity連携による実践訓練</h4>
+                        <p><a href="https://unity.com/" target="_blank">Unity</a>との統合により、工事現場関係者向けの実践的な訓練環境を構築できます：</p>
+                        <ul class="integration-benefits">
+                            <li><strong>VR交通誘導訓練</strong>：誘導員が実際の交通条件下での訓練を安全に実施</li>
+                            <li><strong>危険予測トレーニング</strong>：様々な交通状況下での工事作業の安全訓練</li>
+                            <li><strong>住民説明用シミュレーション</strong>：工事の交通影響を住民が直感的に理解できる3D表現</li>
+                        </ul>
+                    </div>
+                    <div class="integration-card">
+                        <div class="integration-icon">🔄</div>
+                        <h4>デジタルツインによる動的管理</h4>
+                        <p>オブジェクトディテクション技術を活用し、SUMOとリアルタイムデータを連携させたデジタルツインにより：</p>
+                        <ul class="integration-benefits">
+                            <li><strong>現状の交通流を取り込んだ予測</strong>：カメラで検出した実際の交通状況をSUMOに入力し、工事影響の正確な予測が可能</li>
+                            <li><strong>予兆検知と早期対応</strong>：渋滞発生の兆候を早期に発見し、工事車両の入場タイミング調整などで問題を未然に防止</li>
+                            <li><strong>工事計画の動的最適化</strong>：リアルタイムの交通状況に応じて工事車両の経路や作業スケジュールを柔軟に調整</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="benefits" class="container">
+            <div class="section-header">
+                <h2>SUMOのメリット</h2>
+            </div>
+            <div class="benefits-container">
+                <div class="benefit-card">
+                    <div class="benefit-icon">🚗</div>
+                    <h3>マルチモーダル対応</h3>
+                    <p>自動車だけでなく、歩行者、自転車、公共交通機関を含む様々な交通手段のシミュレーションが可能です。</p>
+                </div>
+                <div class="benefit-card">
+                    <div class="benefit-icon">🌐</div>
+                    <h3>大規模ネットワーク</h3>
+                    <p>数十万台の車両を含む大規模な都市全体のネットワークをシミュレーションできます。</p>
+                </div>
+                <div class="benefit-card">
+                    <div class="benefit-icon">🔄</div>
+                    <h3>高い拡張性</h3>
+                    <p>TraCIインターフェースを通じて外部アプリケーションとの連携が容易で、カスタムシミュレーションが構築可能です。</p>
+                </div>
+                <div class="benefit-card">
+                    <div class="benefit-icon">📊</div>
+                    <h3>詳細な分析</h3>
+                    <p>交通流、排出ガス、騒音などの詳細なデータを収集・分析できます。</p>
+                </div>
+                <div class="benefit-card">
+                    <div class="benefit-icon">🔍</div>
+                    <h3>ミクロスコピック</h3>
+                    <p>個々の車両の挙動を詳細にモデル化し、精度の高いシミュレーションが可能です。</p>
+                </div>
+                <div class="benefit-card">
+                    <div class="benefit-icon">🔓</div>
+                    <h3>オープンソース</h3>
+                    <p>完全に無料で利用でき、ソースコードにアクセスして機能を拡張できます。</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="outputs" class="container">
+            <div class="section-header">
+                <h2>SUMOのアウトプット</h2>
+            </div>
+            <div class="content-box">
+                <div class="text-content">
+                    <p>SUMOのシミュレーションでは、様々な形式で結果を出力できます：</p>
+                    <ul class="output-list">
+                        <li><strong>交通状態データ</strong>: 車両の位置、速度、加速度などの時系列データ</li>
+                        <li><strong>交通量データ</strong>: 道路区間ごとの交通量、平均速度、密度など</li>
+                        <li><strong>旅行時間</strong>: 出発地から目的地までの所要時間の統計</li>
+                        <li><strong>排出ガスデータ</strong>: CO2、NOx、PMなどの排出量の推定</li>
+                        <li><strong>騒音データ</strong>: 交通による騒音レベルの推定</li>
+                        <li><strong>衝突検出</strong>: 潜在的な危険状況の識別</li>
+                        <li><strong>視覚化</strong>: 2D/3Dでのシミュレーション結果の表示</li>
+                    </ul>
+                </div>
+                <div class="image-content">
+                    <img src="images/sumo-output.png" alt="SUMO Output Examples" class="placeholder-img">
+                </div>
+            </div>
+            <div class="output-formats">
+                <h3>出力形式</h3>
+                <div class="format-cards">
+                    <div class="format-card">
+                        <h4>XML形式</h4>
+                        <p>詳細なデータを構造化された形式で保存</p>
+                    </div>
+                    <div class="format-card">
+                        <h4>CSV形式</h4>
+                        <p>表計算ソフトやデータ分析ツールで利用しやすい形式</p>
+                    </div>
+                    <div class="format-card">
+                        <h4>SQLite</h4>
+                        <p>大量のデータを効率的に保存・クエリ</p>
+                    </div>
+                    <div class="format-card">
+                        <h4>画像・動画</h4>
+                        <p>シミュレーション結果を視覚的に表現</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="construction-impact" class="container">
+            <div class="section-header">
+                <h2>工事現場の交通流インパクト分析</h2>
+            </div>
+            <div class="content-box">
+                <div class="text-content">
+                    <p>SUMOを使用して工事現場が交通流に与える影響を評価することができます。この分析により、最適な交通管理計画の立案や渋滞緩和策の検討が可能になります。</p>
+                    <h3>主な分析項目</h3>
+                    <div class="analysis-list-container">
+                        <div class="analysis-list-column">
+                    <ul class="analysis-list">
+                        <li><strong>交通容量の変化</strong>: 車線規制や速度制限による容量低下の定量化</li>
+                        <li><strong>旅行時間の増加</strong>: 工事区間通過時の遅延時間の推定</li>
+                        <li><strong>渋滞の範囲と深刻度</strong>: ボトルネック形成とその影響範囲の予測</li>
+                            </ul>
+                        </div>
+                        <div class="analysis-list-column">
+                            <ul class="analysis-list">
+                        <li><strong>迂回経路の効果</strong>: 代替ルートの設定とその効果の評価</li>
+                        <li><strong>交通信号の最適化</strong>: 工事期間中の信号制御最適化の効果測定</li>
+                                <li><strong>安全性評価</strong>: 工事区間周辺の交通安全リスクの分析と対策立案</li>
+                    </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="aimsun-examples">
+                <h3>Aimsumを用いた分析事例</h3>
+                <p class="aimsun-note">以下は、商用シミュレーションソフトウェアAimsumを使用して作成されたインパクト分析の例です。SUMOでも同様の分析が可能だと思います。</p>
+                
+                <div class="video-container">
+                    <div class="video-item">
+                    <video controls class="video-content">
+                        <source src="videos/一通逆走による周辺道路へのインパクトを可視化した事例.mp4" type="video/mp4">
+                        お使いのブラウザは動画の再生に対応していません。
+                    </video>
+                        <p class="video-note">一通逆走による周辺道路へのインパクトを可視化した事例（Aimsumによる分析）</p>
+                    </div>
+                    <div class="video-item">
+                        <video controls class="video-content">
+                            <source src="videos/example.mp4" type="video/mp4">
+                            お使いのブラウザは動画の再生に対応していません。
+                        </video>
+                        <p class="video-note">工事車両の待機位置によるインパクト分析（Aimsumによる分析）</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="case-study-link">
+                <a href="hospital.html" class="case-btn" target="_blank">
+                    <div class="case-icon">🏥</div>
+                    <div class="case-text">
+                        <h4>居ながら施工の事例：病院の改修工事における工事車両導線検討</h4>
+                        <p>病院の改修工事を計画するにあたり、病院関係車両（救急車両、物流車両、患者車両など）の安全性を確保しつつ、工事車両の導線を計画する検討事例を見る（Aimsumによる分析）</p>
+                    </div>
+                </a>
+            </div>
+            
+            <div class="step-cards">
+                <div class="step-card">
+                    <div class="step-number">1</div>
+                    <h4>工事区間のモデル化</h4>
+                    <p>Neteditを使用して工事区間の道路ネットワークを作成し、車線規制や速度制限を設定</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">2</div>
+                    <h4>交通需要の設定</h4>
+                    <p>現実的な交通量データに基づいた車両とルートの定義</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">3</div>
+                    <h4>シナリオ比較</h4>
+                    <p>工事あり/なしの状況や、異なる交通管理計画のシミュレーション比較</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">4</div>
+                    <h4>結果の可視化と分析</h4>
+                    <p>シミュレーション結果のグラフ化と統計分析</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="simulation-points" class="container">
+            <div class="section-header">
+                <h2>シミュレーションのポイント</h2>
+            </div>
+            <div class="content-box">
+                <div class="text-content">
+                    <p>工事車両における交通シミュレーションを行う場合、やみくもに実施するのではなく、効果的なアプローチが必要です。最も重要なのは、ボトルネックとなる可能性のある部分を特定し、それに対する具体的な対応策を検討することです。</p>
+                    
+                    <h3>効果的なシミュレーション実施のポイント</h3>
+                    <ul class="key-points-list">
+                        <li><strong>ボトルネックの抽出</strong>: 渋滞や混雑が発生しやすい箇所を事前に特定する</li>
+                        <li><strong>クリティカルな時間帯の特定</strong>: 交通量のピーク時や特定の時間帯の影響を重点的に分析する</li>
+                        <li><strong>工程ごとの影響分析</strong>: 工事の各段階で交通への影響が異なることを考慮したシミュレーション</li>
+                        <li><strong>複数シナリオの比較</strong>: 異なる対策案の効果を比較検討する</li>
+                        <li><strong>交通誘導員の最適配置</strong>: 効果的な誘導を行うための最適な人員配置と誘導方法の検討</li>
+                        <li><strong>待機場所の設定</strong>: 工事車両や誘導員の待機スペースによる周辺交通への影響を最小化する計画</li>
+                    </ul>
+                </div>
+                <div class="image-content">
+                    <div class="simulation-point-diagram">
+                        <div class="point-circle">
+                            <div class="point-icon">🔍</div>
+                            <div class="point-text">問題箇所の特定</div>
+                        </div>
+                        <div class="point-arrow">→</div>
+                        <div class="point-circle">
+                            <div class="point-icon">📋</div>
+                            <div class="point-text">シナリオ作成</div>
+                        </div>
+                        <div class="point-arrow">→</div>
+                        <div class="point-circle">
+                            <div class="point-icon">⚙️</div>
+                            <div class="point-text">対策立案</div>
+                        </div>
+                        <div class="point-arrow">→</div>
+                        <div class="point-circle">
+                            <div class="point-icon">📊</div>
+                            <div class="point-text">効果検証</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="scenario-examples">
+                <h3>シナリオ例</h3>
+                <div class="scenario-cards">
+                    <div class="scenario-card">
+                        <div class="scenario-icon">🚧</div>
+                        <h4>交差点規制シナリオ</h4>
+                        <p>主要交差点での車線規制による影響と信号サイクル調整による緩和策の効果検証</p>
+                    </div>
+                    <div class="scenario-card">
+                        <div class="scenario-icon">🕒</div>
+                        <h4>時間帯別搬入シナリオ</h4>
+                        <p>ピーク時を避けた資材搬入計画の立案と効果測定</p>
+                    </div>
+                    <div class="scenario-card">
+                        <div class="scenario-icon">🔄</div>
+                        <h4>迂回路設定シナリオ</h4>
+                        <p>工事区間を回避する迂回路の設定と誘導効果の確認</p>
+                    </div>
+                    <div class="scenario-card">
+                        <div class="scenario-icon">🚦</div>
+                        <h4>信号調整シナリオ</h4>
+                        <p>工事影響区間の前後の信号機タイミング調整による交通流の円滑化</p>
+                    </div>
+                    <div class="scenario-card">
+                        <div class="scenario-icon">👮</div>
+                        <h4>交通誘導員配置シナリオ</h4>
+                        <p>最適な交通誘導員の配置位置と人数の検討、および交通整理による効果の検証</p>
+                    </div>
+                    <div class="scenario-card">
+                        <div class="scenario-icon">🅿️</div>
+                        <h4>車両待機場所設定シナリオ</h4>
+                        <p>工事車両や誘導員の待機スペース確保による周辺交通への影響の最小化</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="key-message">
+                <p>シミュレーションの最終目標は、ボトルネックとなる箇所、時間帯、工程を特定し、交通誘導員の最適配置や車両待機場所の設定も含めた具体的な対応策を立案、その効果を可視化することにあります。</p>
+            </div>
+        </section>
+
+        <section id="object-detection" class="container">
+            <div class="section-header">
+                <h2>オブジェクトディテクション技術による交通流の調査</h2>
+            </div>
+            <div class="content-box">
+                <div class="image-content">
+                    <video controls class="video-content">
+                        <source src="videos/objectdetection.mp4" type="video/mp4">
+                        お使いのブラウザは動画の再生に対応していません。
+                    </video>
+                    <p class="video-note">渋谷スクランブル交差点でのオブジェクトディテクション適用例</p>
+                </div>
+                <div class="text-content">
+                    <p>オブジェクトディテクション技術を活用することで、実際の交通状況をリアルタイムで把握し、より精度の高い交通分析が可能になります。カメラやセンサーから収集されたデータを基に、車両、歩行者、自転車などの交通参加者を検出・追跡し、交通流の特性を定量的に評価できます。</p>
+                    <h3>主な活用方法</h3>
+                    <ul class="integration-list">
+                        <li><strong>交通シミュレーションの条件入手</strong>: 実際の交通量や車両挙動のデータを収集し、シミュレーションの入力条件として活用</li>
+                        <li><strong>モニタリングと評価</strong>: 交通施策の実施前後で交通状況を比較し、その効果を客観的に評価するためのツールとして活用</li>
+                        <li><strong>リアルタイム交通制御</strong>: 検出データに基づいて信号制御やダイナミックルート案内などのリアルタイム制御を実現</li>
+                        <li><strong>異常検知</strong>: 通常とは異なる交通パターンの検出による事故や渋滞の早期発見</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="tech-integration">
+                <h3>SUMOとの連携フロー</h3>
+                <div class="integration-flow">
+                    <div class="integration-step">
+                        <div class="integration-icon">📷</div>
+                        <h4>データ収集</h4>
+                        <p>カメラやセンサーからの映像データを収集</p>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="integration-step">
+                        <div class="integration-icon">🔍</div>
+                        <h4>オブジェクト検出</h4>
+                        <p>AIを活用して車両や歩行者を検出・分類</p>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="integration-step">
+                        <div class="integration-icon">📊</div>
+                        <h4>データ処理</h4>
+                        <p>交通量や速度などの特性を抽出・集計</p>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="integration-step">
+                        <div class="integration-icon">💻</div>
+                        <h4>SUMO取り込み</h4>
+                        <p>抽出データをSUMOシミュレーションに入力</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="tech-benefits">
+                <h3>導入メリット</h3>
+                <div class="benefits-grid">
+                    <div class="tech-benefit-card">
+                        <div class="benefit-icon">📈</div>
+                        <h4>精度向上</h4>
+                        <p>実データに基づくシミュレーションによる予測精度の向上</p>
+                    </div>
+                    <div class="tech-benefit-card">
+                        <div class="benefit-icon">⏱️</div>
+                        <h4>効率化</h4>
+                        <p>データ収集・分析の自動化による作業効率の向上</p>
+                    </div>
+                    <div class="tech-benefit-card">
+                        <div class="benefit-icon">🔄</div>
+                        <h4>リアルタイム対応</h4>
+                        <p>リアルタイムデータに基づく動的シミュレーションの実現</p>
+                    </div>
+                    <div class="tech-benefit-card">
+                        <div class="benefit-icon">🧩</div>
+                        <h4>統合分析</h4>
+                        <p>様々なデータソースを組み合わせた総合的な分析</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="netedit" class="container">
+            <div class="section-header">
+                <h2>Neteditとは</h2>
+            </div>
+            <div class="content-box">
+                <div class="image-content">
+                    <img src="images/netedit-interface.png" alt="Netedit Interface" class="placeholder-img">
+                </div>
+                <div class="text-content">
+                    <p>Neteditは、SUMOに含まれるグラフィカルネットワークエディタです。</p>
+                    <p>目的：SUMOネットワークの作成と修正</p>
+                    <p>システム：ポータブル（LinuxとWindowsでテスト済み）</p>
+                    <p>入力（オプション）：インポートする道路ネットワーク定義</p>
+                    <p>出力：生成されたSUMO道路ネットワーク、およびオプションで他の出力</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="workflow" class="container">
+            <div class="section-header">
+                <h2>基本ワークフロー</h2>
+            </div>
+            <div class="workflow-chart">
+                <div class="workflow-step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h3>ネットワーク作成</h3>
+                        <p>Neteditでネットワークを作成または既存のネットワークをインポート</p>
+                    </div>
+                </div>
+                <div class="workflow-arrow">→</div>
+                <div class="workflow-step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h3>需要データ作成</h3>
+                        <p>交通量やルートを定義</p>
+                    </div>
+                </div>
+                <div class="workflow-arrow">→</div>
+                <div class="workflow-step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h3>シミュレーション実行</h3>
+                        <p>SUMOまたはSUMO-GUIでシミュレーション実行</p>
+                    </div>
+                </div>
+                <div class="workflow-arrow">→</div>
+                <div class="workflow-step">
+                    <div class="step-number">4</div>
+                    <div class="step-content">
+                        <h3>結果分析</h3>
+                        <p>シミュレーション結果の分析と評価</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="netedit-guide" class="container">
+            <div class="section-header">
+                <h2>Netedit 使用ガイド</h2>
+            </div>
+            
+            <div class="guide-steps">
+                <div class="guide-step">
+                    <h3>1. 新規ネットワーク作成</h3>
+                    <div class="step-content">
+                        <div class="instruction">
+                            <ol>
+                                <li>Neteditを起動</li>
+                                <li>「File」→「New Network」を選択 (Ctrl+N)</li>
+                                <li>背景グリッドを有効にするには「View」→「Toggle Grid」(Ctrl+G)</li>
+                            </ol>
+                        </div>
+                        <div class="instruction-image">
+                            <img src="images/new-network.png" alt="新規ネットワーク作成" class="placeholder-img">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="guide-step">
+                    <h3>2. エッジ（道路）の作成</h3>
+                    <div class="step-content">
+                        <div class="instruction">
+                            <ol>
+                                <li>「Edge Mode」を選択（Eキー）</li>
+                                <li>最初のジャンクション位置でクリック</li>
+                                <li>次のジャンクション位置でクリックしてエッジを作成</li>
+                                <li>エッジのプロパティを調整（車線数、速度制限など）</li>
+                            </ol>
+                        </div>
+                        <div class="instruction-image">
+                            <img src="images/create-edge.png" alt="エッジ作成" class="placeholder-img">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="guide-step">
+                    <h3>3. ジャンクション（交差点）の編集</h3>
+                    <div class="step-content">
+                        <div class="instruction">
+                            <ol>
+                                <li>「Junction Mode」を選択</li>
+                                <li>ジャンクションを右クリックしてコンテキストメニューを開く</li>
+                                <li>形状や交通制御を調整</li>
+                            </ol>
+                        </div>
+                        <div class="instruction-image">
+                            <img src="images/edit-junction.png" alt="ジャンクション編集" class="placeholder-img">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="guide-step">
+                    <h3>4. 接続（コネクション）の設定</h3>
+                    <div class="step-content">
+                        <div class="instruction">
+                            <ol>
+                                <li>「Connection Mode」を選択（Cキー）</li>
+                                <li>接続を変更したいジャンクションを選択</li>
+                                <li>車線間の接続を追加または削除</li>
+                            </ol>
+                        </div>
+                        <div class="instruction-image">
+                            <img src="images/connections.png" alt="接続設定" class="placeholder-img">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="guide-step">
+                    <h3>5. 信号機の設定</h3>
+                    <div class="step-content">
+                        <div class="instruction">
+                            <ol>
+                                <li>「Traffic Light Mode」を選択（Tキー）</li>
+                                <li>信号機を設定したいジャンクションを選択</li>
+                                <li>信号のタイミングとフェーズを調整</li>
+                            </ol>
+                        </div>
+                        <div class="instruction-image">
+                            <img src="images/traffic-lights.png" alt="信号機設定" class="placeholder-img">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="guide-step">
+                    <h3>6. ネットワークの保存</h3>
+                    <div class="step-content">
+                        <div class="instruction">
+                            <ol>
+                                <li>「File」→「Save Network」を選択 (Ctrl+S)</li>
+                                <li>ファイル名を入力して保存（例：mynetwork.net.xml）</li>
+                            </ol>
+                        </div>
+                        <div class="instruction-image">
+                            <img src="images/save-network.png" alt="ネットワーク保存" class="placeholder-img">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+        </section>
+
+        <section id="keyboard-shortcuts" class="container">
+            <div class="section-header">
+                <h2>キーボードショートカット</h2>
+            </div>
+            <div class="shortcut-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ショートカット</th>
+                            <th>機能</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Ctrl + N</td>
+                            <td>新規ネットワーク作成</td>
+                        </tr>
+                        <tr>
+                            <td>Ctrl + O</td>
+                            <td>ネットワークを開く</td>
+                        </tr>
+                        <tr>
+                            <td>Ctrl + S</td>
+                            <td>ネットワークを保存</td>
+                        </tr>
+                        <tr>
+                            <td>Ctrl + Z</td>
+                            <td>元に戻す</td>
+                        </tr>
+                        <tr>
+                            <td>Ctrl + Y</td>
+                            <td>やり直す</td>
+                        </tr>
+                        <tr>
+                            <td>Ctrl + G</td>
+                            <td>グリッド表示切替</td>
+                        </tr>
+                        <tr>
+                            <td>F5</td>
+                            <td>ジャンクション再計算</td>
+                        </tr>
+                        <tr>
+                            <td>F6</td>
+                            <td>ジャンクションクリーンアップ</td>
+                        </tr>
+                        <tr>
+                            <td>E</td>
+                            <td>エッジモード</td>
+                        </tr>
+                        <tr>
+                            <td>M</td>
+                            <td>移動モード</td>
+                        </tr>
+                        <tr>
+                            <td>C</td>
+                            <td>接続モード</td>
+                        </tr>
+                        <tr>
+                            <td>T</td>
+                            <td>信号機モード</td>
+                        </tr>
+                        <tr>
+                            <td>I</td>
+                            <td>検査モード</td>
+                        </tr>
+                        <tr>
+                            <td>D</td>
+                            <td>削除モード</td>
+                        </tr>
+                        <tr>
+                            <td>S</td>
+                            <td>選択モード</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section id="tips" class="container">
+            <div class="section-header">
+                <h2>便利なヒント</h2>
+            </div>
+            
+            <div class="tips-overview">
+                <h3>ヒント一覧</h3>
+                <div class="tips-search">
+                    <input type="text" id="tipSearch" placeholder="ヒントを検索..." class="search-input">
+                    <div class="tag-filters">
+                        <button class="tag-btn active" data-tag="all">すべて</button>
+                        <button class="tag-btn" data-tag="sumo">SUMO-GUI</button>
+                        <button class="tag-btn" data-tag="netedit">Netedit</button>
+                        <button class="tag-btn" data-tag="basic">基本操作</button>
+                        <button class="tag-btn" data-tag="advanced">応用</button>
+                    </div>
+                </div>
+                <ul class="tips-list">
+                    <li data-tags="sumo basic"><a href="#tip-teleport">テレポート問題の回避</a></li>
+                    <li data-tags="netedit sumo basic"><a href="#tip-lefthand">左側通行の設定</a></li>
+                    <li data-tags="sumo basic"><a href="#tip-speedunit">速度（スピード）の単位</a></li>
+                    <li data-tags="netedit basic"><a href="#tip-grid">グリッドの活用</a></li>
+                    <li data-tags="netedit basic"><a href="#tip-save">頻繁な保存</a></li>
+                    <li data-tags="netedit basic"><a href="#tip-selection">選択ツールの活用</a></li>
+                    <li data-tags="netedit basic"><a href="#tip-inspect">インスペクトモード</a></li>
+                </ul>
+            </div>
+            
+            <div class="guide-steps">
+                <div id="tip-teleport" class="guide-step">
+                    <h3>1. テレポート問題の回避</h3>
+                    <div class="step-content">
+                        <div class="instruction">
+                            <p>SUMOシミュレーションでは、渋滞時に車両が自動的にテレポートしてしまう問題があります。これを防ぐには以下の方法があります：</p>
+                            <ol>
+                                <li>コマンドラインで実行する場合：
+                                    <pre>sumo-gui -c <設定ファイル名>.sumocfg --time-to-teleport -1</pre>
+                                </li>
+                                <li>設定ファイル内で指定する場合：
+                                    <pre>&lt;configuration&gt;
+    &lt;time&gt;
+        &lt;time-to-teleport value="-1"/&gt;
+    &lt;/time&gt;
+&lt;/configuration&gt;</pre>
+                                </li>
+                            </ol>
+                            <p>補足：</p>
+                            <ul>
+                                <li><code>--time-to-teleport -1</code>でテレポート機能を完全に無効化</li>
+                                <li>設定ファイル名は状況によって変わります（例：test.sumocfg, hospital.sumocfg など）</li>
+                                <li>テレポートを許可しつつ時間を延長する場合は <code>-1</code> の代わりに秒数（例：600）を指定</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tip-lefthand" class="guide-step">
+                    <h3>2. 左側通行の設定</h3>
+                    <div class="lefthand-setting-content">
+                      <div class="lefthand-instruction">
+                        <p>日本では左側通行が基本となるため、以下の手順で設定が必要です：</p>
+                        <h5>Neteditでの設定（推奨）</h5>
+                        <ol>
+                          <li>Neteditを起動</li>
+                          <li>「Processing」→「Options」を選択</li>
+                          <li>「Traffic Rules」セクションで「lefthand」にチェックを入れる</li>
+                          <li>「OK」をクリックして設定を保存</li>
+                        </ol>
+                        <p>この設定により、新規作成するネットワークは自動的に左側通行として設定されます。</p>
+                        <h5>SUMO-GUIでの設定</h5>
+                        <ol>
+                          <li>コマンドラインで実行する場合：
+                            <pre>sumo-gui -c <設定ファイル名>.sumocfg --lefthand</pre>
+                          </li>
+                          <li>設定ファイル内で指定する場合：
+                            <pre>&lt;configuration&gt;
+    &lt;processing&gt;
+        &lt;lefthand value="true"/&gt;
+    &lt;/processing&gt;
+&lt;/configuration&gt;</pre>
+                          </li>
+                        </ol>
+                        <p>補足：</p>
+                        <ul>
+                          <li>Neteditでの設定が最も重要で、ネットワーク作成時から左側通行を前提とした設計が可能</li>
+                          <li>交差点での右左折の挙動が現実に即したものになる</li>
+                          <li>既存のネットワークを修正する場合は、SUMO-GUIでの設定も必要</li>
+                          <li>この設定は日本でのシミュレーションに必須</li>
+                        </ul>
+                      </div>
+                      <div class="lefthand-image">
+                        <img src="images/netedit_lefthand.png" alt="NeteditのProcessingオプションでlefthandをtrueに設定">
+                        <p class="img-caption">NeteditのProcessingオプションでlefthandをtrueに設定</p>
+                      </div>
+                    </div>
+                </div>
+
+                <div id="tip-grid" class="guide-step">
+                    <h3>3. グリッドの活用</h3>
+                    <div class="step-content">
+                        <div class="instruction">
+                            <ol>
+                                <li>「View」→「Toggle Grid」(Ctrl+G)でグリッドを表示</li>
+                                <li>正確な距離とアライメントでネットワークを作成可能</li>
+                                <li>グリッドサイズは「View」→「Edit Grid」で調整可能</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tip-save" class="guide-step">
+                    <h3>4. 頻繁な保存</h3>
+                    <div class="step-content">
+                        <div class="instruction">
+                            <ol>
+                                <li>「File」→「Save Network」(Ctrl+S)で定期的に保存</li>
+                                <li>大きな変更の前には特に重要</li>
+                                <li>自動保存機能はないため、こまめな保存を心がける</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tip-selection" class="guide-step">
+                    <h3>5. 選択ツールの活用</h3>
+                    <div class="step-content">
+                        <div class="instruction">
+                            <ol>
+                                <li>「Selection Mode」(Sキー)で複数オブジェクトを選択</li>
+                                <li>Shiftキーを押しながらクリックで複数選択</li>
+                                <li>選択したオブジェクトは一括で編集可能</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tip-inspect" class="guide-step">
+                    <h3>6. インスペクトモード</h3>
+                    <div class="step-content">
+                        <div class="instruction">
+                            <ol>
+                                <li>「Inspect Mode」(Iキー)でオブジェクトの詳細を確認</li>
+                                <li>プロパティの確認と変更が可能</li>
+                                <li>エラーチェックにも活用可能</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tip-speedunit" class="guide-step">
+                    <h3>7. 速度（スピード）の単位</h3>
+                    <div class="step-content">
+                        <div class="instruction">
+                            <p>SUMO（Simulation of Urban MObility）における道路スピード（速度）の単位は <strong>m/s（メートル毎秒）</strong> です。</p>
+                            <p>例えば、以下のように記述されています：</p>
+                            <ul>
+                                <li>歩行者のデフォルト速度：<code>1.39 m/s</code>（約5 km/h）</li>
+                                <li>自転車のデフォルト速度：<code>5.56 m/s</code>（約20 km/h）</li>
+                                <li>一般車両は通常、制限速度（<code>speedLimit</code>）や車両タイプごとの <code>maxSpeed</code>、および個別の <code>speedFactor</code> によって走行速度が制限されます。</li>
+                            </ul>
+                            <p>この単位は、以下の設定や表示に共通して使われます：</p>
+                            <ul>
+                                <li><code>&lt;edge&gt;</code> 要素や <code>&lt;lane&gt;</code> 要素で指定される速度制限（<code>speed</code> 属性）</li>
+                                <li><code>&lt;vType&gt;</code> 要素で指定される <code>maxSpeed</code> や <code>desiredMaxSpeed</code></li>
+                                <li>TraCI APIで取得できる <code>getSpeed</code>, <code>getAllowedSpeed</code> などの値</li>
+                            </ul>
+                            <p>GUIでも速度表示は m/s 単位になっているため、必要であれば km/h に換算（×3.6）して考えると分かりやすくなります。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="resources" class="container">
+            <div class="section-header">
+                <h2>参考リソース</h2>
+            </div>
+            <div class="resources-list">
+                <ul>
+                    <li><a href="https://sumo.dlr.de/docs/" target="_blank">公式SUMO文書</a> - 包括的なドキュメント</li>
+                    <li><a href="https://sumo.dlr.de/docs/Tutorials/" target="_blank">チュートリアル集</a> - ステップバイステップの学習</li>
+                    <li><a href="https://sumo.dlr.de/docs/Netedit/index.html" target="_blank">Neteditマニュアル</a> - 詳細な操作ガイド</li>
+                    <li><a href="https://github.com/eclipse-sumo/sumo" target="_blank">GitHubリポジトリ</a> - ソースコードとコミュニティ</li>
+                </ul>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 SUMO & Netedit 操作マニュアル | 作成者: <span id="author">交通シミュレーション研究チーム</span></p>
+        </div>
+    </footer>
+
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        const body = document.body;
+        const clearBtn = document.getElementById('clearBtn');
+        const toggleBtn = document.getElementById('toggleBtn');
+        const sizeRange = document.getElementById('sizeRange');
+        const sizeValue = document.getElementById('sizeValue');
+        const fadeRange = document.getElementById('fadeRange');
+        const fadeValue = document.getElementById('fadeValue');
+        const colorPicker = document.querySelectorAll('.color');
+        const cursorDot = document.querySelector('.cursor-dot');
+        
+        let isDrawing = true;
+        let trailColor = '#ff5252';
+        let dotSize = 10;
+        let fadeDuration = 3;
+        
+        // カスタムカーソルの移動
+        document.addEventListener('mousemove', function(e) {
+          cursorDot.style.left = `${e.clientX}px`;
+          cursorDot.style.top = `${e.clientY}px`;
+        });
+        
+        // 色の選択
+        colorPicker.forEach(color => {
+          color.addEventListener('click', function() {
+            colorPicker.forEach(c => c.classList.remove('active'));
+            this.classList.add('active');
+            trailColor = this.getAttribute('data-color');
+          });
+        });
+        
+        // サイズの調整
+        sizeRange.addEventListener('input', function() {
+          dotSize = this.value;
+          sizeValue.textContent = dotSize;
+        });
+        
+        // 消える速度の調整
+        fadeRange.addEventListener('input', function() {
+          fadeDuration = this.value;
+          fadeValue.textContent = fadeDuration;
+        });
+        
+        // 軌跡を消去
+        clearBtn.addEventListener('click', function() {
+          const dots = document.querySelectorAll('.trail-dot');
+          dots.forEach(dot => dot.remove());
+        });
+        
+        // 軌跡の表示/非表示
+        toggleBtn.addEventListener('click', function() {
+          isDrawing = !isDrawing;
+          toggleBtn.textContent = isDrawing ? '一時停止' : '再開';
+        });
+        
+        // マウスの動きを検出して軌跡を作成
+        document.addEventListener('mousemove', function(e) {
+          if (!isDrawing) return;
+          
+          // マウスの実際の位置をそのまま使用
+          const x = e.clientX;
+          const y = e.clientY;
+          
+          // 軌跡のドットを作成
+          const dot = document.createElement('div');
+          dot.classList.add('trail-dot');
+          dot.style.width = `${dotSize}px`;
+          dot.style.height = `${dotSize}px`;
+          dot.style.backgroundColor = trailColor;
+          dot.style.left = `${x}px`;
+          dot.style.top = `${y}px`;
+          dot.style.opacity = '0.7';
+          
+          body.appendChild(dot);
+          
+          // アニメーションで徐々に消える
+          setTimeout(() => {
+            dot.style.transition = `opacity ${fadeDuration}s ease-out`;
+            dot.style.opacity = '0';
+            
+            // アニメーション終了後に要素を削除
+            setTimeout(() => {
+              dot.remove();
+            }, fadeDuration * 1000);
+          }, 10);
+        });
+
+        // ヒント検索とタグフィルター機能
+        const searchInput = document.getElementById('tipSearch');
+        const tagButtons = document.querySelectorAll('.tag-btn');
+        const tipItems = document.querySelectorAll('.tips-list li');
+        
+        function filterTips() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const activeTag = document.querySelector('.tag-btn.active').dataset.tag;
+            
+            tipItems.forEach(item => {
+                const text = item.textContent.toLowerCase();
+                const tags = item.dataset.tags.split(' ');
+                const matchesSearch = text.includes(searchTerm);
+                const matchesTag = activeTag === 'all' || tags.includes(activeTag);
+                
+                if (matchesSearch && matchesTag) {
+                    item.classList.add('visible');
+                } else {
+                    item.classList.remove('visible');
+                }
+            });
+        }
+        
+        searchInput.addEventListener('input', filterTips);
+        
+        tagButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                tagButtons.forEach(btn => btn.classList.remove('active'));
+                this.classList.add('active');
+                filterTips();
+            });
+        });
+        
+        // 初期表示
+        filterTips();
+      });
+    </script>
+</body>
+</html> 

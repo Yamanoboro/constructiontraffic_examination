@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>工事現場の交通シミュレーション - 活用効果と成功事例</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+    /* ログイン画面のスタイル */
+    .auth-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+    }
+
+    .auth-container {
+        background: white;
+        border-radius: 12px;
+        padding: 40px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        text-align: center;
+        max-width: 400px;
+        width: 90%;
+    }
+
+    .auth-title {
+        font-size: 2em;
+        color: #333;
+        margin-bottom: 10px;
+        font-weight: bold;
+    }
+
+    .auth-subtitle {
+        color: #666;
+        margin-bottom: 30px;
+        font-size: 1.1em;
+    }
+
+    .auth-form {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .auth-input {
+        padding: 15px;
+        border: 2px solid #e1e5e9;
+        border-radius: 8px;
+        font-size: 1em;
+        transition: border-color 0.3s ease;
+    }
+
+    .auth-input:focus {
+        outline: none;
+        border-color: #667eea;
+    }
+
+    .auth-button {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 15px;
+        border-radius: 8px;
+        font-size: 1.1em;
+        font-weight: bold;
+        cursor: pointer;
+        transition: transform 0.2s ease;
+    }
+
+    .auth-button:hover {
+        transform: translateY(-2px);
+    }
+
+    .auth-error {
+        color: #e74c3c;
+        font-size: 0.9em;
+        margin-top: 10px;
+        display: none;
+    }
+
+    .main-content {
+        display: none;
+    }
+
+    .main-content.show {
+        display: block;
+    }
+    /* マウス軌跡機能のスタイル */
+    .trail-dot {
+      position: fixed;
+      border-radius: 50%;
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      z-index: 1000;
+    }
+    
+    /* マウスポインタを白丸に */
+    body {
+      cursor: none;
+    }
+    
+    /* 現在のマウス位置を示す白丸 */
+    .cursor-dot {
+      position: fixed;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background-color: rgba(255, 255, 255, 0.6);
+      border: 1px solid rgba(0, 0, 0, 0.2);
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      z-index: 1001;
+    }
+    
+    /* コントロールボタンではマウスポインタを表示 */
+    .controls, a, button, input {
+      cursor: auto;
+    }
+    
+    .controls {
+      padding: 10px;
+      background-color: rgba(255, 255, 255, 0.9);
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      margin-bottom: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      position: sticky;
+      top: 10px;
+      z-index: 1001;
+      max-width: 800px;
+      margin: 0 auto 20px;
+    }
+    
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    button.control-btn {
+      padding: 6px 12px;
+      background-color: #4299e1;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    
+    button.control-btn:hover {
+      background-color: #2b6cb0;
+    }
+    
+    .color {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid transparent;
+    }
+    
+    .color.active {
+      border-color: #333;
+    }
+    
+    input[type="range"] {
+      width: 80px;
+    }
+
+    /* ヒーローセクションのスタイル */
+    .hero-section {
+        background: 
+            linear-gradient(135deg, rgba(102, 126, 234, 0.8) 0%, rgba(118, 75, 162, 0.8) 100%),
+            url('images/Gemini_Generated_Image_al480hal480hal48.png') center/cover no-repeat;
+        color: white;
+        padding: 60px 0;
+        text-align: center;
+        position: relative;
+    }
+
+    .hero-title {
+        font-size: 3em;
+        margin-bottom: 20px;
+        font-weight: bold;
+    }
+
+    .hero-subtitle {
+        font-size: 1.3em;
+        margin-bottom: 40px;
+        opacity: 0.9;
+    }
+
+    .hero-stats {
+        display: flex;
+        justify-content: center;
+        gap: 60px;
+        margin-top: 40px;
+    }
+
+    .stat-item {
+        text-align: center;
+    }
+
+    .stat-number {
+        font-size: 2.5em;
+        font-weight: bold;
+        display: block;
+        color: #ffd700;
+    }
+
+    .stat-label {
+        font-size: 1.1em;
+        opacity: 0.9;
+        margin-top: 5px;
+    }
+
+    /* 利益カードのスタイル */
+    .benefits-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 30px;
+        margin: 40px 0;
+    }
+
+    .benefit-card-large {
+        background: white;
+        border-radius: 12px;
+        padding: 30px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .benefit-card-large:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    }
+
+    .benefit-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+
+    .benefit-icon-large {
+        font-size: 3em;
+        margin-right: 20px;
+    }
+
+    .benefit-title {
+        font-size: 1.5em;
+        font-weight: bold;
+        color: #333;
+    }
+
+    .benefit-subtitle {
+        font-size: 1.1em;
+        color: #666;
+        margin-top: 5px;
+    }
+
+    .benefit-description {
+        font-size: 1.1em;
+        line-height: 1.6;
+        color: #555;
+        margin-bottom: 20px;
+    }
+
+    .benefit-examples {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 20px;
+        margin-top: 20px;
+    }
+
+    .benefit-examples h4 {
+        color: #333;
+        margin-bottom: 15px;
+        font-size: 1.2em;
+    }
+
+    .benefit-examples ul {
+        list-style: none;
+        padding: 0;
+    }
+
+    .benefit-examples li {
+        padding: 8px 0;
+        border-bottom: 1px solid #e9ecef;
+        color: #555;
+    }
+
+    .benefit-examples li:last-child {
+        border-bottom: none;
+    }
+
+    .benefit-examples li:before {
+        content: "✓";
+        color: #28a745;
+        font-weight: bold;
+        margin-right: 10px;
+    }
+
+    /* 事例セクションのスタイル */
+    .case-studies-section {
+        background: #f8f9fa;
+        padding: 60px 0;
+    }
+
+    .case-study-card {
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        margin-bottom: 40px;
+        transition: transform 0.3s ease;
+    }
+
+    .case-study-card:hover {
+        transform: translateY(-3px);
+    }
+
+    .case-study-media {
+        position: relative;
+        height: 300px;
+        overflow: hidden;
+    }
+
+    .youtube-embed {
+        width: 100%;
+        height: 100%;
+        border: none;
+    }
+
+    .case-study-content {
+        padding: 30px;
+    }
+
+    .case-study-title {
+        font-size: 1.5em;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 15px;
+    }
+
+    .case-study-description {
+        font-size: 1.1em;
+        line-height: 1.6;
+        color: #555;
+        margin-bottom: 20px;
+    }
+
+    .case-study-benefits {
+        background: #e3f2fd;
+        border-radius: 8px;
+        padding: 20px;
+        margin-top: 20px;
+    }
+
+    .case-study-benefits h4 {
+        color: #1976d2;
+        margin-bottom: 15px;
+    }
+
+    /* アクションセクションのスタイル */
+    .action-section {
+        background: linear-gradient(135deg, #43a047 0%, #66bb6a 100%);
+        color: white;
+        padding: 60px 0;
+        text-align: center;
+    }
+
+    .action-title {
+        font-size: 2.5em;
+        margin-bottom: 20px;
+        font-weight: bold;
+    }
+
+    .action-subtitle {
+        font-size: 1.3em;
+        margin-bottom: 40px;
+        opacity: 0.9;
+    }
+
+    .action-steps {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 30px;
+        margin: 40px 0;
+    }
+
+    .action-step {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 30px;
+        text-align: center;
+    }
+
+    .step-icon {
+        font-size: 3em;
+        margin-bottom: 20px;
+        display: block;
+    }
+
+    .step-title {
+        font-size: 1.3em;
+        font-weight: bold;
+        margin-bottom: 15px;
+    }
+
+    .step-description {
+        font-size: 1.1em;
+        opacity: 0.9;
+        line-height: 1.5;
+    }
+
+    /* コンタクトセクションのスタイル */
+    .contact-section {
+        background: #f8f9fa;
+        padding: 60px 0;
+        text-align: center;
+    }
+
+    .contact-card {
+        background: white;
+        border-radius: 12px;
+        padding: 40px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        max-width: 600px;
+        margin: 0 auto;
+    }
+
+    .contact-title {
+        font-size: 2em;
+        color: #333;
+        margin-bottom: 20px;
+    }
+
+    .contact-description {
+        font-size: 1.2em;
+        color: #555;
+        line-height: 1.6;
+        margin-bottom: 30px;
+    }
+
+    .contact-info {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 30px;
+        margin-top: 30px;
+    }
+
+    .contact-item {
+        text-align: center;
+    }
+
+    .contact-icon {
+        font-size: 2.5em;
+        color: #4299e1;
+        margin-bottom: 15px;
+    }
+
+    .contact-label {
+        font-size: 1.1em;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 5px;
+    }
+
+    .contact-value {
+        font-size: 1em;
+        color: #666;
+    }
+
+    /* レスポンシブ対応 */
+    @media (max-width: 768px) {
+        .hero-stats {
+            flex-direction: column;
+            gap: 30px;
+        }
+        
+        .hero-title {
+            font-size: 2.2em;
+        }
+        
+        .benefits-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .action-steps {
+            grid-template-columns: 1fr;
+        }
+    }
+    </style>
+</head>
+<body>
+    <!-- 認証画面 -->
+    <div id="authOverlay" class="auth-overlay">
+        <div class="auth-container">
+            <h1 class="auth-title">🔐 ログイン</h1>
+            <p class="auth-subtitle">工事現場の交通シミュレーション</p>
+            <form class="auth-form" id="authForm">
+                <input 
+                    type="text" 
+                    id="username" 
+                    class="auth-input" 
+                    placeholder="ユーザーID"
+                    required
+                >
+                <input 
+                    type="password" 
+                    id="password" 
+                    class="auth-input" 
+                    placeholder="パスワード"
+                    required
+                >
+                <button type="submit" class="auth-button">ログイン</button>
+                <div id="authError" class="auth-error">
+                    ユーザーIDまたはパスワードが正しくありません
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- メインコンテンツ -->
+    <div id="mainContent" class="main-content">
+        <div class="cursor-dot"></div>
+    <div class="controls">
+      <div class="control-group">
+        <button id="clearBtn" class="control-btn">軌跡を消去</button>
+        <button id="toggleBtn" class="control-btn">一時停止</button>
+      </div>
+      <div class="control-group">
+        <label for="sizeRange">サイズ:</label>
+        <input type="range" id="sizeRange" min="2" max="20" value="10">
+        <span id="sizeValue">10</span>px
+      </div>
+      <div class="control-group">
+        <label for="fadeRange">消滅速度:</label>
+        <input type="range" id="fadeRange" min="1" max="10" value="3">
+        <span id="fadeValue">3</span>秒
+      </div>
+      <div class="control-group">
+        <span>色:</span>
+        <div class="color active" style="background-color: #ff5252;" data-color="#ff5252"></div>
+        <div class="color" style="background-color: #4299e1;" data-color="#4299e1"></div>
+        <div class="color" style="background-color: #43a047;" data-color="#43a047"></div>
+        <div class="color" style="background-color: #ffb300;" data-color="#ffb300"></div>
+      </div>
+    </div>
+
+    <!-- ヒーローセクション -->
+    <section class="hero-section">
+        <div class="container">
+            <h1 class="hero-title">工事現場の交通シミュレーション</h1>
+            <p class="hero-subtitle">データに基づく建設工事における交通シミュレーションで「安全性」を客観的に評価し、工事の影響を最小化し住民満足度を向上</p>
+            <p class="hero-subtitle">排出ガスの削減、工事車両騒音、住民の理解を得るための重要なツール</p>
+        </div>
+    </section>
+
+    <main>
+        <!-- 利益とメリット -->
+        <section class="container">
+            <div class="section-header">
+                <h2>なぜ交通シミュレーションが必要なのか？</h2>
+                <p>工事現場における交通シミュレーションは、単なる技術ではありません。住民の理解を得て、スムーズな工事進行を実現するための重要な戦略ツールです。</p>
+                <p>工事現場の交通をモデル化することで何がポイントになりどう対策を立てるかチームで検討することができます。</p>
+            </div>
+            
+            <div class="benefits-grid">
+                <div class="benefit-card-large">
+                    <div class="benefit-header">
+                        <div class="benefit-icon-large">🎯</div>
+                        <div>
+                            <div class="benefit-title">住民説明の円滑化</div>
+                            <div class="benefit-subtitle">視覚的資料で理解促進</div>
+                        </div>
+                    </div>
+                    <div class="benefit-description">
+                        「どのくらい渋滞するのか？」「いつまで続くのか？」住民の不安を数値とグラフで明確に回答。説明会での合意形成をスムーズに。
+                    </div>
+                    <div class="benefit-examples">
+                        <h4>実例</h4>
+                        <ul>
+                            <li>通勤ラッシュ7-9時：駅前交差点で車列300m→500m延伸を事前予測し迂回路案内で混雑分散</li>
+                            <li>実際の道路をモデル化：幅員6.5mの県道で大型車すれ違い不可箇所を特定し、待機場所3箇所を設定</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="benefit-card-large">
+                    <div class="benefit-header">
+                        <div class="benefit-icon-large">⏱️</div>
+                        <div>
+                            <div class="benefit-title">工事計画の最適化</div>
+                            <div class="benefit-subtitle">ボトルネック回避でスムーズ施工</div>
+                        </div>
+                    </div>
+                    <div class="benefit-description">
+                        資材搬入のタイミング、交通誘導員の配置、車線規制の順序を最適化。工事車両の待機時間削減で工期短縮とコスト削減を実現。
+                    </div>
+                    <div class="benefit-examples">
+                        <h4>実例</h4>
+                        <ul>
+                            <li>誘導員配置の最適化：交差点200m手前と現場入口の2名連携で、無線交信タイミングを5秒間隔に設定し車両滞留ゼロを実現</li>
+                            <li>コンクリート打設計画：生コン車20台の到着間隔を8分→12分に調整し、現場待機車両を3台から1台に削減</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="benefit-card-large">
+                    <div class="benefit-header">
+                        <div class="benefit-icon-large">🛡️</div>
+                        <div>
+                            <div class="benefit-title">安全リスクの事前把握</div>
+                            <div class="benefit-subtitle">危険箇所の見える化と対策</div>
+                        </div>
+                    </div>
+                    <div class="benefit-description">
+                        「見通しの悪い交差点」「急カーブでの合流」など、工事中に発生する危険箇所を事前に特定。適切な安全対策で事故を未然に防止。
+                    </div>
+                    <div class="benefit-examples">
+                        <h4>実例</h4>
+                        <ul>
+                            <li>ボトルネック箇所の特定：右折車線幅2.8mで大型車が立ち往生するリスクを発見し、一時的な車線拡幅工事を事前計画</li>
+                            <li>作業員教育への活用：ダンプの右左折時に生じる内輪差死角を3Dで可視化し、誘導員の立ち位置を具体的に指導</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="benefit-card-large">
+                    <div class="benefit-header">
+                        <div class="benefit-icon-large">💰</div>
+                        <div>
+                            <div class="benefit-title">社会コストの削減</div>
+                            <div class="benefit-subtitle">渋滞による経済損失を最小化</div>
+                        </div>
+                    </div>
+                    <div class="benefit-description">
+                        渋滞で失われる時間、燃料、配送遅延による経済損失を数値化。最適な工事計画により地域全体の損失を大幅に軽減。
+                    </div>
+                    <div class="benefit-examples">
+                        <h4>実例</h4>
+                        <ul>
+                            <li>環境負荷低減：10t車両50台の搬入ルートを最適化し、CO2排出量を1日あたり120kg削減（迂回距離短縮効果）</li>
+                            <li>品質向上への貢献：生コン車の現場滞在時間を平均25分→15分に短縮し、コンクリート品質劣化リスクを大幅軽減</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <!-- YouTube動画の挿入 -->
+                <div style="margin-top: 40px; grid-column: span 2;">
+                    <div style="position: relative; width: 100%; height: 0; padding-bottom: 55%; overflow: hidden; border-radius: 12px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);">
+                        <iframe 
+                            style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none;" 
+                            src="https://www.youtube.com/embed/TFVK5Xq-IUA?autoplay=1&loop=1&playlist=TFVK5Xq-IUA&mute=1" 
+                            title="交通シミュレーション実例" 
+                            allowfullscreen>
+                        </iframe>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 成功事例 -->
+        <section class="case-studies-section">
+            <div class="container">
+                <div class="section-header">
+                    <h2>検討事例と実績</h2>
+                    <p>実際のプロジェクトで確認された交通シミュレーションの効果をご紹介します</p>
+                </div>
+
+                <div class="case-study-card" style="grid-column: span 2;">
+                    <div class="case-study-media" style="height: 700px;">
+                        <iframe class="youtube-embed" src="https://www.youtube.com/embed/DhH6Jzrrf_0?autoplay=1&loop=1&playlist=DhH6Jzrrf_0&mute=1" title="交通シミュレーション事例1" allowfullscreen></iframe>
+                    </div>
+                    <div class="case-study-content">
+                        <h3 class="case-study-title">一通逆走による周辺道路へのインパクトを可視化した事例</h3>
+                        <p class="case-study-description">
+                            一通逆走による周辺道路へのインパクトを可視化して住民説明資料として利用しました。これにより一般車両への影響が殆どない事を説明することができました。
+                        </p>
+                    </div>
+                </div>
+
+                <div class="case-study-card" style="grid-column: span 2;">
+                    <div class="case-study-media" style="height: 600px; overflow-y: auto; border-radius: 12px; background: white; padding: 20px;">
+                        <iframe src="hospital.html" style="width: 100%; height: 1500px; border: none; border-radius: 8px;" title="病院改修工事の詳細事例"></iframe>
+                    </div>
+                    <div class="case-study-content">
+                        <h3 class="case-study-title">病院の改修工事における工事車両導線検討事例</h3>
+                        <p class="case-study-description">
+                            病院の改修工事を計画するにあたり、救急車両、外来患者車両、物流車両などの病院関係車両の安全性を確保しつつ、工事車両の導線を計画した実例です。上のウィンドウをスクロールして詳細をご確認ください。
+                        </p>
+                    </div>
+                </div>
+
+                <div class="case-study-card">
+                    <div class="case-study-media" style="height: 700px;">
+                        <iframe class="youtube-embed" src="https://www.youtube.com/embed/8-9bq4Qm3e0?autoplay=1&loop=1&playlist=8-9bq4Qm3e0&mute=1" title="交通シミュレーション事例3" allowfullscreen></iframe>
+                    </div>
+                    <div class="case-study-content">
+                        <h3 class="case-study-title">学校周辺での安全対策工事</h3>
+                        <p class="case-study-description">
+                            一般車両に加え自転車を考慮して工事車両の待機場所の検討を行いました。待機位置をずらすことで自転車の安全通行を確保することができました。
+                        </p>
+                    </div>
+                </div>
+
+                <!-- SUMOアウトプット事例 -->
+                <div style="margin-top: 60px;">
+                    <div class="section-header">
+                        <h2>交通シミュレーションから得られるアウトプット事例</h2>
+                        <p>SUMOのシミュレーションでは、様々な形式で結果を出力できます</p>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center; margin-top: 40px;">
+                        <div>
+                            <img src="images/sumo-output.png" alt="SUMOアウトプット事例" style="width: 100%; border-radius: 12px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);">
+                        </div>
+                        <div>
+                            <div style="background: white; border-radius: 12px; padding: 30px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);">
+                                <h3 style="color: #4299e1; margin-bottom: 20px; font-size: 1.3em;">📊 主要なアウトプット項目</h3>
+                                <ul style="list-style: none; padding: 0; margin: 0;">
+                                    <li style="padding: 8px 0; border-bottom: 1px solid #e9ecef; display: flex; align-items: center;">
+                                        <span style="color: #4299e1; margin-right: 10px;">🚗</span>
+                                        <strong>交通状態データ:</strong> 車両の位置、速度、加速度などの時系列データ
+                                    </li>
+                                    <li style="padding: 8px 0; border-bottom: 1px solid #e9ecef; display: flex; align-items: center;">
+                                        <span style="color: #4299e1; margin-right: 10px;">📈</span>
+                                        <strong>交通量データ:</strong> 道路区間ごとの交通量、平均速度、密度など
+                                    </li>
+                                    <li style="padding: 8px 0; border-bottom: 1px solid #e9ecef; display: flex; align-items: center;">
+                                        <span style="color: #4299e1; margin-right: 10px;">⏱️</span>
+                                        <strong>旅行時間:</strong> 出発地から目的地までの所要時間の統計
+                                    </li>
+                                    <li style="padding: 8px 0; border-bottom: 1px solid #e9ecef; display: flex; align-items: center;">
+                                        <span style="color: #4299e1; margin-right: 10px;">🌿</span>
+                                        <strong>排出ガスデータ:</strong> CO2、NOx、PMなどの排出量の推定
+                                    </li>
+                                    <li style="padding: 8px 0; border-bottom: 1px solid #e9ecef; display: flex; align-items: center;">
+                                        <span style="color: #4299e1; margin-right: 10px;">🔊</span>
+                                        <strong>騒音データ:</strong> 交通による騒音レベルの推定
+                                    </li>
+                                    <li style="padding: 8px 0; border-bottom: 1px solid #e9ecef; display: flex; align-items: center;">
+                                        <span style="color: #4299e1; margin-right: 10px;">⚠️</span>
+                                        <strong>衝突検出:</strong> 潜在的な危険状況の識別
+                                    </li>
+                                    <li style="padding: 8px 0; display: flex; align-items: center;">
+                                        <span style="color: #4299e1; margin-right: 10px;">🎥</span>
+                                        <strong>視覚化:</strong> 2D/3Dでのシミュレーション結果の表示
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 導入ステップ -->
+        <section class="action-section">
+            <div class="container">
+                <h2 class="action-title">交通シミュレーション導入の流れ</h2>
+                <p class="action-subtitle">専門知識がなくても、段階的なアプローチで確実に効果を実現</p>
+                
+                <div class="action-steps">
+                    <div class="action-step">
+                        <span class="step-icon">📋</span>
+                        <h3 class="step-title">現状把握・課題整理</h3>
+                        <p class="step-description">工事計画と周辺交通状況の詳細分析。ボトルネックとなる可能性のある箇所を特定し、対策の優先順位を決定します。</p>
+                    </div>
+                    <div class="action-step">
+                        <span class="step-icon">📊</span>
+                        <h3 class="step-title">現地交通量調査</h3>
+                        <p class="step-description">実際の交通量、車種構成、ピーク時間帯を詳細調査。シミュレーションの精度向上に必要な基礎データを収集します。</p>
+                    </div>
+                    <div class="action-step">
+                        <span class="step-icon">🎯</span>
+                        <h3 class="step-title">シミュレーション実施</h3>
+                        <p class="step-description">現地調査データに基づき複数の工事シナリオを検証し、最適な交通管理計画を策定。時間帯別・工程別の詳細な影響分析を実施します。</p>
+                    </div>
+                    <div class="action-step">
+                        <span class="step-icon">⚙️</span>
+                        <h3 class="step-title">実施・モニタリング</h3>
+                        <p class="step-description">計画に基づく工事実施と、実際の交通状況のモニタリング。必要に応じて計画の微調整を行います。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- お問い合わせ -->
+        <!--
+        <section class="contact-section">
+            <div class="container">
+                <div class="contact-card">
+                    <h2 class="contact-title">交通シミュレーション導入のご相談</h2>
+                    <p class="contact-description">
+                        貴組織の工事プロジェクトに最適な交通シミュレーション計画をご提案いたします。初回相談は無料です。お気軽にお問い合わせください。
+                    </p>
+                    <div class="contact-info">
+                        <div class="contact-item">
+                            <div class="contact-icon">📞</div>
+                            <div class="contact-label">お電話でのご相談</div>
+                            <div class="contact-value">03-XXXX-XXXX</div>
+                        </div>
+                        <div class="contact-item">
+                            <div class="contact-icon">📧</div>
+                            <div class="contact-label">メールでのお問い合わせ</div>
+                            <div class="contact-value">contact@example.com</div>
+                        </div>
+                        <div class="contact-item">
+                            <div class="contact-icon">🏢</div>
+                            <div class="contact-label">対応エリア</div>
+                            <div class="contact-value">全国対応可能</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        -->
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 工事現場の交通シミュレーション | 活用部署向けガイド</p>
+        </div>
+    </footer>
+    </div> <!-- End of main-content -->
+
+    <script>
+      // 認証機能
+      document.addEventListener('DOMContentLoaded', function() {
+        const authForm = document.getElementById('authForm');
+        const authOverlay = document.getElementById('authOverlay');
+        const mainContent = document.getElementById('mainContent');
+        const authError = document.getElementById('authError');
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+
+        // セッションチェック
+        if (sessionStorage.getItem('authenticated') === 'true') {
+          showMainContent();
+        }
+
+        // フォーム送信時の処理
+        authForm.addEventListener('submit', function(e) {
+          e.preventDefault();
+          
+          const username = usernameInput.value.trim();
+          const password = passwordInput.value.trim();
+          
+          // 認証チェック（ID: admin, Password: admin）
+          if (username === 'admin' && password === 'admin') {
+            sessionStorage.setItem('authenticated', 'true');
+            showMainContent();
+          } else {
+            showError();
+          }
+        });
+
+        function showMainContent() {
+          authOverlay.style.display = 'none';
+          mainContent.classList.add('show');
+        }
+
+        function showError() {
+          authError.style.display = 'block';
+          passwordInput.value = '';
+          setTimeout(() => {
+            authError.style.display = 'none';
+          }, 3000);
+        }
+
+        // Enterキーでのログイン
+        [usernameInput, passwordInput].forEach(input => {
+          input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+              authForm.dispatchEvent(new Event('submit'));
+            }
+          });
+        });
+      });
+
+      // 既存のマウス軌跡機能
+      document.addEventListener('DOMContentLoaded', function() {
+        const body = document.body;
+        const clearBtn = document.getElementById('clearBtn');
+        const toggleBtn = document.getElementById('toggleBtn');
+        const sizeRange = document.getElementById('sizeRange');
+        const sizeValue = document.getElementById('sizeValue');
+        const fadeRange = document.getElementById('fadeRange');
+        const fadeValue = document.getElementById('fadeValue');
+        const colorPicker = document.querySelectorAll('.color');
+        const cursorDot = document.querySelector('.cursor-dot');
+        
+        let isDrawing = true;
+        let trailColor = '#ff5252';
+        let dotSize = 10;
+        let fadeDuration = 3;
+        
+        // カスタムカーソルの移動
+        document.addEventListener('mousemove', function(e) {
+          cursorDot.style.left = `${e.clientX}px`;
+          cursorDot.style.top = `${e.clientY}px`;
+        });
+        
+        // 色の選択
+        colorPicker.forEach(color => {
+          color.addEventListener('click', function() {
+            colorPicker.forEach(c => c.classList.remove('active'));
+            this.classList.add('active');
+            trailColor = this.getAttribute('data-color');
+          });
+        });
+        
+        // サイズの調整
+        sizeRange.addEventListener('input', function() {
+          dotSize = this.value;
+          sizeValue.textContent = dotSize;
+        });
+        
+        // 消える速度の調整
+        fadeRange.addEventListener('input', function() {
+          fadeDuration = this.value;
+          fadeValue.textContent = fadeDuration;
+        });
+        
+        // 軌跡を消去
+        clearBtn.addEventListener('click', function() {
+          const dots = document.querySelectorAll('.trail-dot');
+          dots.forEach(dot => dot.remove());
+        });
+        
+        // 軌跡の表示/非表示
+        toggleBtn.addEventListener('click', function() {
+          isDrawing = !isDrawing;
+          toggleBtn.textContent = isDrawing ? '一時停止' : '再開';
+        });
+        
+        // マウスの動きを検出して軌跡を作成
+        document.addEventListener('mousemove', function(e) {
+          if (!isDrawing) return;
+          
+          // マウスの実際の位置をそのまま使用
+          const x = e.clientX;
+          const y = e.clientY;
+          
+          // 軌跡のドットを作成
+          const dot = document.createElement('div');
+          dot.classList.add('trail-dot');
+          dot.style.width = `${dotSize}px`;
+          dot.style.height = `${dotSize}px`;
+          dot.style.backgroundColor = trailColor;
+          dot.style.left = `${x}px`;
+          dot.style.top = `${y}px`;
+          dot.style.opacity = '0.7';
+          
+          body.appendChild(dot);
+          
+          // アニメーションで徐々に消える
+          setTimeout(() => {
+            dot.style.transition = `opacity ${fadeDuration}s ease-out`;
+            dot.style.opacity = '0';
+            
+            // アニメーション終了後に要素を削除
+            setTimeout(() => {
+              dot.remove();
+            }, fadeDuration * 1000);
+          }, 10);
+        });
+      });
+    </script>
+</body>
+</html>
